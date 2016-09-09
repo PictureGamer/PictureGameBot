@@ -1,0 +1,20 @@
+{
+  "name": "PictureGame_Bot",
+  "version": "1.0.0",
+  "description": "Bot for /r/PictureGame's Discord chat",
+  "main": "bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node bot.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://https://github.com/PictureGamer/PictureGameBot.git"
+  },
+  "author": "btwebb",
+  "license": "",
+  "dependencies": {
+    "discord.js": "*",
+    "auth": "./auth.json"
+  }
+}
