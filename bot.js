@@ -622,6 +622,8 @@ function setDescription() {
 }
 
 function setCurrentHost(user) {
+    console.log("Setting host... " + user);
+
     var role = bot.guilds.get(serverID).roles.find('name', 'Current Host');
     var members = bot.guilds.get(serverID).members.array();
 
@@ -629,9 +631,11 @@ function setCurrentHost(user) {
         var username = members[i].user.username;
         var nickname = members[i].nickname;
 
+        console.log("Username: " + username + " Nickname: " + nickname);
+
         if (username === user || nickname === user) {
             members[i].addRole(role);
-            console.log("Current host added: " + user);
+            console.log("Host added: " + user);
             hostExists = true;
         }
     }
@@ -646,7 +650,7 @@ function clearCurrentHost() {
         if (members[i].roles.find('name', 'Current Host'))
         {
             members[i].removeRole(role);
-            console.log("Current host removed");
+            console.log("Host removed: " + members[i].user.username + " (" + members[i].nickname + ")");
         }
     }
 }
