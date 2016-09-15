@@ -10,7 +10,7 @@ const mentionReply = "use !commands to see a list of available commands";
 /////////////////////////////////////
 
 const Discord = require('discord.js');
-const http = require('http');
+const https = require('https');
 const snoowrap = require('snoowrap');
 const cheerio = require('cheerio');
 const AuthDetails = require("./auth.json");
@@ -21,7 +21,6 @@ const channelID = "189582201640321024";
 const adminRole = "Mods";
 
 var currentRoundData;
-var hostExists = false;
 var madList = [];
 
 const bot = new Discord.Client({
@@ -234,7 +233,11 @@ var commands = [
         parameters: ["user"],
         permissions: ['admin'],
         execute: function(message, params) {
-            setCurrentHost(params[1]);
+            setCurrentHost(params[1], function(host) {
+                if (!host) {
+                    message.channel.sendMessage(child.data.author + " is the host but I couldn't set them here.");
+                }
+            });
         }
     },
 
@@ -353,34 +356,39 @@ bot.on("disconnected", function () {
 });
 
 bot.on("message", function(message) {
-    if(message.author.username !== botName) {
-        
-        if(message.channel.topic !== undefined) {
-                        
-            if(message.content[0] == '!') {
-                handleCommand(message, message.content.substring(1));
-                    
-            }
-            else if(message.mentions.users.find('username', botName)) {
-                message.reply(mentionReply);
-            }
-        }
+    if(message.author.bot) {
+        return;
+    }
 
-        else {
-            message.reply(directMessageReply);
+    else if(message.channel.topic !== undefined) {
+        
+        if(message.content[0] == '!') {
+            handleCommand(message, message.content.substring(1));        
         }
+        else if(message.mentions.users.find('username', botName)) {
+            message.reply(mentionReply);
+        }
+    }
+
+    else {
+        message.reply(directMessageReply);
     }
 });
 
-bot.on("serverNewMember", function(server, user) {
-	console.log("New member added!");
+bot.on("guildMemberAdd", function(guild, member) {
+	member.sendMessage("Welcome to the PictureGame Discord! Please make sure your username or server nickname matches with your Reddit account.");
 
-    user.sendMessage("Welcome to the PictureGame Discord! Please make sure your username or server nickname matches with your Reddit account.");
+    var username = member.user.username;
+    var nickname = member.nickname;
 
-	var nickname = user.properties.nickname;
+    console.log("Member added: " + username);
 
-	if (currentRoundData.user === user.username || currentRoundData.user === nickname) {
-		setCurrentHost(user);
+	if (currentRoundData.user === username || currentRoundData.user === nickname) {
+        setCurrentHost(currentRoundData.user, function(host) {
+            if (!host) {
+                guild.channels.get(channelID).sendMessage(child.data.author + " is the host but I couldn't set them here.");
+            }
+        });
 	}
 });
 
@@ -511,10 +519,10 @@ function removeMadList (user) {
 }
 
 function setCurrentRound() {
-    var url = "http://www.reddit.com/r/PictureGame/new/.json?limit=1";
-    var request = http.get(url, function(response) {
+    var url = "https://www.reddit.com/r/PictureGame/new/.json?limit=1";
+    var request = https.get(url, function(response) {
         if (response.statusCode < 200 || response.statusCode > 299) {
-            console.log("Caught an error while setting round... retrying...");
+            console.log("Caught an error while setting round... retrying... " + response.statusCode);
             setTimeout(function() {
                 setCurrentRound();
             }, 5000);
@@ -538,12 +546,13 @@ function setCurrentRound() {
                     pic: child.data.url
                 };
 
-                setCurrentHost(child.data.author);
+                setCurrentHost(child.data.author, function(host) {
+                    if (!host) {
+                        bot.guilds.get(serverID).channels.get(channelID).sendMessage(child.data.author + " is the host but I couldn't set them here.");
+                    }
+                });
+
                 setDescription();
-                
-                if (!hostExists) {
-                    bot.guilds.get(serverID).channels.get(channelID).sendMessage(child.data.author + " is the host but doesn't have a Discord account! :cry:");
-                }
 
                 console.log("Current round set!");
                 var interval = setInterval (function () {
@@ -554,7 +563,7 @@ function setCurrentRound() {
     })
 
     .on('error', function(err) {
-        console.log("Caught an error while setting round... retrying...");
+        console.log("Caught an error while setting round... retrying... " + err);
         setTimeout(function() {
             setCurrentRound();
         }, 5000);
@@ -562,10 +571,10 @@ function setCurrentRound() {
 }
 
 function checkNewRound() {
-    var url = "http://www.reddit.com/r/PictureGame/new/.json?limit=1";
-    var request = http.get(url, function(response) {
+    var url = "https://www.reddit.com/r/PictureGame/new/.json?limit=1";
+    var request = https.get(url, function(response) {
         if (response.statusCode < 200 || response.statusCode > 299) {
-        	console.log("Caught an error while checking round... retrying...");
+        	console.log("Caught an error while checking round... retrying... " + response.statusCode);
        		setTimeout(function() {
         		checkNewRound()
         	}, 5000);
@@ -590,12 +599,13 @@ function checkNewRound() {
                     };
 
                     clearCurrentHost();
-                    setCurrentHost(child.data.author);
-                    setDescription();
+                    setCurrentHost(child.data.author, function(host) {
+                        if (!host) {
+                            bot.guilds.get(serverID).channels.get(channelID).sendMessage(child.data.author + " is the host but I couldn't set them here.");
+                        }
+                    });
 
-                    if (!hostExists) {
-                        bot.guilds.get(serverID).channels.get(channelID).sendMessage(child.data.author + " is the host but doesn't have a Discord account! :cry:");
-                    }
+                    setDescription();
 
                     bot.guilds.get(serverID).channels.get(channelID).sendMessage("@here, a new round is up:" + "\n\n**" + currentRoundData.title + "** by " + currentRoundData.user + "\n" + "http://redd.it/" + currentRoundData.id + "\n" + currentRoundData.pic);
 
@@ -609,7 +619,7 @@ function checkNewRound() {
     })
 
 	.on('error', function(err) {
-        console.log("Caught an error while checking round... retrying...");
+        console.log("Caught an error while checking round... retrying... " + err);
        	setTimeout(function() {
         	checkNewRound();
         }, 5000);
@@ -621,7 +631,7 @@ function setDescription() {
     bot.guilds.get(serverID).channels.get(channelID).setTopic(newDescription);
 }
 
-function setCurrentHost(user) {
+function setCurrentHost(user, cb) {
     console.log("Setting host... " + user);
 
     var role = bot.guilds.get(serverID).roles.find('name', 'Current Host');
@@ -633,10 +643,10 @@ function setCurrentHost(user) {
 
         console.log("Username: " + username + " Nickname: " + nickname);
 
-        if (username === user || nickname === user) {
+        if (user === username || user === nickname) {
             members[i].addRole(role);
             console.log("Host added: " + user);
-            hostExists = true;
+            cb(true);
         }
     }
 }
@@ -644,7 +654,6 @@ function setCurrentHost(user) {
 function clearCurrentHost() {
     var role = bot.guilds.get(serverID).roles.find('name', 'Current Host');
     var members = bot.guilds.get(serverID).members.array();
-    hostExists = false;
     
     for (var i = 0; i < members.length; i++) {
         if (members[i].roles.find('name', 'Current Host'))
