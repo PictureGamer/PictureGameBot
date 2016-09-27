@@ -591,6 +591,8 @@ function checkNewRound() {
             var redditResponse = JSON.parse(json);
             redditResponse.data.children.forEach(function(child) {                    
                 if (currentRoundData.id !== child.data.id) {
+                	console.log("Current: " +  currentRoundData.id + " " + "New: " + child.data.id);
+
                     currentRoundData = {
                         id: child.data.id,
                         title: child.data.title,
