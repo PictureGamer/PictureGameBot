@@ -519,7 +519,7 @@ function removeMadList (user) {
 }
 
 function setCurrentRound() {
-    var url = "https://www.reddit.com/r/PictureGame/new/.json?limit=1";
+    var url = "https://www.reddit.com/r/PictureGame/new.json?limit=1";
     var request = https.get(url, function(response) {
         if (response.statusCode < 200 || response.statusCode > 299) {
             console.log("Caught an error while setting round... retrying... " + response.statusCode);
@@ -571,7 +571,7 @@ function setCurrentRound() {
 }
 
 function checkNewRound() {
-    var url = "https://www.reddit.com/r/PictureGame/new/.json?limit=1";
+    var url = "https://www.reddit.com/r/PictureGame/new.json?limit=1";
     var request = https.get(url, function(response) {
         if (response.statusCode < 200 || response.statusCode > 299) {
         	console.log("Caught an error while checking round... retrying... " + response.statusCode);
@@ -589,15 +589,13 @@ function checkNewRound() {
 
         response.on('end', function() {
             var redditResponse = JSON.parse(json);
-            redditResponse.data.children.forEach(function(child) {                    
-                if (currentRoundData.id !== child.data.id) {
-                	console.log("Current: " +  currentRoundData.id + " " + "New: " + child.data.id);
-
+            redditResponse.data.children.forEach(function(child) {             
+                if (currentRoundData.id != child.data.id && child.data.link_flair_css_class == "unsolved") {
                     currentRoundData = {
                         id: child.data.id,
                         title: child.data.title,
                         user: child.data.author,
-                        pic: child.data.url
+                        pic: child.data.url,
                     };
 
                     clearCurrentHost();
